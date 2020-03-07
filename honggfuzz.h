@@ -234,6 +234,7 @@ typedef struct {
         const char* externalCommand;
         const char* postExternalCommand;
         const char* feedbackMutateCommand;
+        const char* encodeCommand;
         bool netDriver;
         bool persistent;
         uint64_t asLimit;
@@ -359,6 +360,8 @@ typedef struct {
     unsigned mutationsPerRun;
     uint8_t* dynamicFile;
     size_t dynamicFileSz;
+    uint8_t* unencodedDynamicFile;
+    size_t unencodedDynamicFileSz;
     bool staticFileTryMore;
     int dynamicFileFd;
     uint32_t fuzzNo;

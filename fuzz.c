@@ -246,7 +246,7 @@ static void fuzz_perfFeedback(run_t* run) {
                 run->global->linux.hwCnts.bbCnt, run->global->linux.hwCnts.softCntEdge,
                 run->global->linux.hwCnts.softCntPc, run->global->linux.hwCnts.softCntCmp);
 
-            input_addDynamicInput(run->global, run->dynamicFile, run->dynamicFileSz,
+            input_addDynamicInput(run->global, run->unencodedDynamicFile, run->unencodedDynamicFileSz,
                 (uint64_t[4]){0, 0, 0, 0}, "[DYNAMIC]");
         }
 
@@ -331,13 +331,35 @@ static bool fuzz_runVerifier(run_t* run) {
     return true;
 }
 
+static bool fuzz_maybeEncodeFile(run_t* run) {
+    if (run->global->exe.encodeCommand) {
+        // Save unencoded version so that it can be reused for the next iterations
+        run->unencodedDynamicFile = util_Malloc(run->dynamicFileSz);
+        if (run->unencodedDynamicFile == NULL) {
+            LOG_E("Cannot allocate memory for a copy of the unencoded file (%ld bytes)", run->dynamicFileSz);
+            return false;
+        }
+        run->unencodedDynamicFileSz = run->dynamicFileSz;
+        memcpy(run->unencodedDynamicFile, run->dynamicFile, run->unencodedDynamicFileSz);
+
+        if(!input_postProcessFile(run, run->global->exe.encodeCommand)) {
+            LOG_E("input_postProcessFile('%s') failed", run->global->exe.encodeCommand);
+            return false;
+        }
+    } else {
+        run->unencodedDynamicFile = run->dynamicFile;
+        run->unencodedDynamicFileSz = run->dynamicFileSz;
+    }
+    return true;
+}
+
 static bool fuzz_fetchInput(run_t* run) {
     {
         fuzzState_t st = fuzz_getState(run->global);
         if (st == _HF_STATE_DYNAMIC_DRY_RUN) {
             run->mutationsPerRun = 0U;
             if (input_prepareStaticFile(run, /* rewind= */ false, true)) {
-                return true;
+                return fuzz_maybeEncodeFile(run);
             }
             fuzz_setDynamicMainState(run);
             run->mutationsPerRun = run->global->mutate.mutationsPerRun;
@@ -394,7 +416,7 @@ static bool fuzz_fetchInput(run_t* run) {
         return false;
     }
 
-    return true;
+    return fuzz_maybeEncodeFile(run);
 }
 
 static void fuzz_fuzzLoop(run_t* run) {
@@ -498,6 +520,7 @@ static void* fuzz_threadNew(void* arg) {
         .global = hfuzz,
         .pid = 0,
         .dynamicFile = NULL,
+        .unencodedDynamicFile = NULL,
         .dynamicFileFd = -1,
         .fuzzNo = fuzzNo,
         .persistentSock = -1,

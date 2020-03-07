@@ -305,6 +305,7 @@ bool cmdlineParse(int argc, char* argv[], honggfuzz_t* hfuzz) {
                 .externalCommand = NULL,
                 .postExternalCommand = NULL,
                 .feedbackMutateCommand = NULL,
+                .encodeCommand = NULL,
                 .persistent = false,
                 .netDriver = false,
                 .asLimit = 0U,
@@ -456,6 +457,7 @@ bool cmdlineParse(int argc, char* argv[], honggfuzz_t* hfuzz) {
         { { "mutate_cmd", required_argument, NULL, 'c' }, "External command producing fuzz files (instead of internal mutators)" },
         { { "pprocess_cmd", required_argument, NULL, 0x111 }, "External command postprocessing files produced by internal mutators" },
         { { "ffmutate_cmd", required_argument, NULL, 0x110 }, "External command mutating files which have effective coverage feedback" },
+        { { "encode_cmd", required_argument, NULL, 0x114 }, "External command encoding files before they are triaged" },
         { { "run_time", required_argument, NULL, 0x109 }, "Number of seconds this fuzzing session will last (default: 0 [no limit])" },
         { { "iterations", required_argument, NULL, 'N' }, "Number of fuzzing iterations (default: 0 [no limit])" },
         { { "rlimit_as", required_argument, NULL, 0x100 }, "Per process RLIMIT_AS in MiB (default: 0 [default limit])" },
@@ -655,6 +657,9 @@ bool cmdlineParse(int argc, char* argv[], honggfuzz_t* hfuzz) {
                 break;
             case 0x110:
                 hfuzz->exe.feedbackMutateCommand = optarg;
+                break;
+            case 0x114:
+                hfuzz->exe.encodeCommand = optarg;
                 break;
             case 0x106:
                 hfuzz->feedback.skipFeedbackOnTimeout = true;
